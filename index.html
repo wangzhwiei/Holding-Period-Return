@@ -93,14 +93,14 @@ function detectConvexity(data, curveName) {
     type: '全局最优', severity: 'best'
   });
   
-  // 局部极值
-  for (let i = 2; i < returns.length - 2; i++) {
-    const prev2 = returns[i-2][10], prev1 = returns[i-1][10];
+  // 局部极值（前后各1点，捕获小幅峰谷）
+  for (let i = 1; i < returns.length - 1; i++) {
+    const prev1 = returns[i-1][10];
     const curr  = returns[i][10];
-    const next1 = returns[i+1][10], next2 = returns[i+2][10];
+    const next1 = returns[i+1][10];
     
-    const isLocalMin = curr < prev1 && curr < prev2 && curr < next1 && curr < next2;
-    const isLocalMax = curr > prev1 && curr > prev2 && curr > next1 && curr > next2 && returns[i][0] < 9;
+    const isLocalMin = curr < prev1 && curr < next1;
+    const isLocalMax = curr > prev1 && curr > next1 && returns[i][0] < 9;
     
     if (isLocalMin || isLocalMax) {
       if (Math.abs(curr - globalBest[10]) < 0.005) continue; // skip if same as global best
