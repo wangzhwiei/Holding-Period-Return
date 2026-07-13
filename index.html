@@ -53,7 +53,6 @@ tr:hover td{background:#fafbff}
   <div class="legend">
     <span class="legend-item"><span class="legend-dot" style="background:#ffebee;border:2px solid #c62828"></span> 局部峰值（骑乘收益局部最高）</span>
     <span class="legend-item"><span class="legend-dot" style="background:#e8f5e9;border:2px solid #2e7d32"></span> 局部低谷（骑乘收益局部最低）</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#fff3e0;border:2px solid #e65100"></span> 曲率异常（曲线形态突变）</span>
     <span class="legend-item"><span class="legend-dot" style="background:#e3f2fd;border:2px solid #1565c0"></span> 全局最优</span>
   </div>
   <div id="convexity-detail" style="margin-top:8px">加载中...</div>
@@ -102,16 +101,13 @@ function detectConvexity(data, curveName) {
     
     const isLocalMin = curr < prev1 && curr < prev2 && curr < next1 && curr < next2;
     const isLocalMax = curr > prev1 && curr > prev2 && curr > next1 && curr > next2 && returns[i][0] < 9;
-    const d1 = (curr - prev1) / (returns[i][0] - returns[i-1][0]);
-    const d2 = (next1 - curr) / (returns[i+1][0] - returns[i][0]);
-    const curvatureChange = Math.abs(d2 - d1) > 0.12 && returns[i][0] < 2.5;
     
-    if (isLocalMin || isLocalMax || curvatureChange) {
+    if (isLocalMin || isLocalMax) {
       if (Math.abs(curr - globalBest[10]) < 0.005) continue; // skip if same as global best
       points.push({
         tenor: returns[i][0], ytm: returns[i][1], ret: curr,
-        type: isLocalMin ? '局部低谷' : (isLocalMax ? '局部峰值' : '曲率异常'),
-        severity: isLocalMin ? 'valley' : (isLocalMax ? 'peak' : 'bump')
+        type: isLocalMin ? '局部低谷' : '局部峰值',
+        severity: isLocalMin ? 'valley' : 'peak'
       });
     }
   }
@@ -158,14 +154,14 @@ document.getElementById('kpi-row').innerHTML = CURVES.map(n=>{
     <div class="kpi-label">${NAMES[n]}</div>
     <div class="kpi-value" style="color:${COLORS[n]}">${best[10].toFixed(3)}%</div>
     <div class="kpi-sub">最优 ${best[0].toFixed(1)} 年 | 票息 ${best[4].toFixed(2)}% + 骑乘贡献 ${best[9].toFixed(2)}%</div>
-    ${conv.length>0?`<div class="kpi-sub" style="margin-top:4px">${conv.map(p=>`<span class="badge ${p.severity==='best'?'badge-blue':(p.severity==='peak'?'badge-red':(p.severity==='valley'?'badge-green':'badge-orange'))}">${p.tenor.toFixed(1)}年 ${p.type}</span>`).join(' ')}</div>`:''}
+    ${conv.length>0?`<div class="kpi-sub" style="margin-top:4px">${conv.map(p=>`<span class="badge ${p.severity==='best'?'badge-blue':(p.severity==='peak'?'badge-red':'badge-green')}">${p.tenor.toFixed(1)}年 ${p.type}</span>`).join(' ')}</div>`:''}
   </div>`;
 }).join('');
 
 // ── 凸点详情 ───────────────────────────────────
 document.getElementById('convexity-detail').innerHTML = CURVES.map(n=>{
   const pts=allConvexity[n];
-  return `<p><b>${NAMES[n]}</b>：${pts.map(p=>`<span class="badge ${p.severity==='best'?'badge-blue':(p.severity==='peak'?'badge-red':(p.severity==='valley'?'badge-green':'badge-orange'))}">${p.tenor.toFixed(1)}年 ${p.type} ${p.ret.toFixed(3)}%</span>`).join(' ')}</p>`;
+  return `<p><b>${NAMES[n]}</b>：${pts.map(p=>`<span class="badge ${p.severity==='best'?'badge-blue':(p.severity==='peak'?'badge-red':'badge-green')}">${p.tenor.toFixed(1)}年 ${p.type} ${p.ret.toFixed(3)}%</span>`).join(' ')}</p>`;
 }).join('');
 
 // ── 图表 ───────────────────────────────────────
@@ -174,18 +170,18 @@ function makeChart(id,opt){const el=document.getElementById(id);if(el)echarts.in
 makeChart('chart-yield',{
   tooltip:{trigger:'axis',formatter:p=>`${p[0].axisValue}年<br/>${p.map(s=>`${s.marker} ${s.seriesName}: ${s.value[1].toFixed(4)}%`).join('<br/>')}`},
   legend:{bottom:0,textStyle:{fontSize:12}},
-  grid:{left:50,right:30,top:20,bottom:40},
-  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:25,min:0,max:10,axisLabel:{fontSize:11}},
-  yAxis:{name:'收益率（%）',axisLabel:{fontSize:11}},
+  grid:{left:60,right:35,top:20,bottom:50},
+  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:30,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
+  yAxis:{name:'收益率（%）',axisLabel:{fontSize:11,margin:8},min:1},
   series:seriesYield
 });
 
 makeChart('chart-return',{
   tooltip:{trigger:'axis',formatter:p=>`${p[0].axisValue}年<br/>${p.map(s=>`${s.marker} ${s.seriesName}: ${Array.isArray(s.value)?s.value[1].toFixed(3):''}%`).join('<br/>')}`},
   legend:{bottom:0,textStyle:{fontSize:12}},
-  grid:{left:50,right:30,top:20,bottom:40},
-  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:25,min:0,max:10,axisLabel:{fontSize:11}},
-  yAxis:{name:'年化持有收益（%）',axisLabel:{fontSize:11}},
+  grid:{left:60,right:35,top:20,bottom:50},
+  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:30,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
+  yAxis:{name:'年化持有收益（%）',axisLabel:{fontSize:11,margin:8},min:1},
   series:seriesReturn
 });
 
@@ -196,7 +192,7 @@ makeChart('chart-decomp',{
       '券商债AAA 票息收益':false,'券商债AAA 骑乘贡献':false,
       '中短期票据AAA 票息收益':false,'中短期票据AAA 骑乘贡献':false
     }},
-  grid:{left:50,right:30,top:20,bottom:50},
+  grid:{left:60,right:35,top:20,bottom:55},
   xAxis:{name:'期限（年）',nameLocation:'center',nameGap:25,min:0,max:10,axisLabel:{fontSize:11}},
   yAxis:{name:'年化收益率（%）',axisLabel:{fontSize:11}},
   series:seriesDecomp
@@ -224,7 +220,7 @@ for (let i=0; i<allTenors.length; i++){
   CURVES.forEach(c=>{
     const d = RAW[c][i];
     const cp = convMap[c][t.toFixed(1)];
-    const cls = cp ? (cp.severity==='best'?'td-peak':(cp.severity==='peak'?'td-peak':(cp.severity==='valley'?'td-valley':'td-bump'))) : '';
+    const cls = cp ? (cp.severity==='best'?'td-peak':(cp.severity==='peak'?'td-peak':'td-valley')) : '';
     tbody += `<td>${d[1]!==null?d[1].toFixed(4):'-'}</td>`;
     tbody += `<td>${d[2]!==null?d[2].toFixed(4):'-'}</td>`;
     tbody += `<td>${d[4]!==null?d[4].toFixed(4):'-'}</td>`;
