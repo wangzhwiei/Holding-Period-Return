@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宏观高频指标观测面板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root{--bg:#f0f2f5;--card:#fff;--border:#e0e4e8;--text:#1a1a2e;--text2:#6b7280;--blue:#2563eb;--green:#059669;--red:#dc2626;--gray:#9ca3af;--accent:#7c3aed}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+header{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:20px 32px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+header h1{font-size:20px;font-weight:700}
+header .sub{font-size:12px;opacity:.7;margin-top:2px}
+header .stats{display:flex;gap:16px;margin-top:8px;font-size:11px;opacity:.8;flex-wrap:wrap}
+.loading{text-align:center;padding:60px;color:var(--text2);font-size:14px}
+.loading .spinner{display:inline-block;width:32px;height:32px;border:3px solid #e5e7eb;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+main{max-width:1400px;margin:0 auto;padding:16px 20px}
+.cat-section{margin-bottom:12px;background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;border:1px solid var(--border)}
+.cat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;transition:background .2s;user-select:none}
+.cat-header:hover{background:#f8fafc}
+.cat-header h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;color:#1e293b}
+.cat-header h2 .badge{font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
+.cat-header .arrow{transition:transform .3s;font-size:10px;color:var(--text2)}
+.cat-header.open .arrow{transform:rotate(180deg)}
+.cat-header .meta{font-size:11px;color:var(--text2)}
+.cat-body{overflow:visible;transition:all .35s ease}
+.cat-body.collapsed{max-height:0!important;opacity:0}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f8fafc;color:var(--text2);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:2px solid #e5e7eb;white-space:nowrap;position:sticky;top:0}
+thead th:first-child{padding-left:16px}
+thead th:last-child{text-align:center;min-width:120px}
+tbody td{padding:7px 10px;border-bottom:1px solid #f3f4f6;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody td:first-child{padding-left:16px;font-weight:500;color:var(--blue);cursor:pointer}
+tbody td:first-child:hover{text-decoration:underline;color:#1d4ed8}
+tbody tr:hover{background:#f8fafc}
+.val-up{color:var(--red);font-weight:600}
+.val-down{color:var(--green);font-weight:600}
+.val-neutral{color:var(--gray)}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.tag-bullish{background:#d1fae5;color:#065f46}
+.tag-bearish{background:#fee2e2;color:#991b1b}
+.tag-neutral{background:#f3f4f6;color:#6b7280}
+.tag-mixed{background:#fef3c7;color:#92400e}
+.freq-badge{font-size:9px;padding:1px 5px;border-radius:2px;margin-left:4px;vertical-align:middle}
+.freq-daily{background:#dbeafe;color:#1e40af}
+.freq-weekly{background:#fef3c7;color:#92400e}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:200;justify-content:center;align-items:center}
+.modal.active{display:flex}
+.modal-content{background:#fff;border-radius:12px;width:92%;max-width:1050px;max-height:88vh;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #e5e7eb}
+.modal-header h3{font-size:15px;color:#1e293b}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);padding:0 4px;border-radius:4px}
+.modal-close:hover{background:#f3f4f6;color:var(--text)}
+.modal-body{flex:1;overflow-y:auto;padding:14px 18px}
+.time-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.time-filters button{padding:4px 12px;border:1px solid #d1d5db;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;color:var(--text2);transition:all .15s}
+.time-filters button:hover{border-color:var(--blue);color:var(--blue)}
+.time-filters button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chart-container{width:100%;height:420px}
+footer{text-align:center;padding:20px;font-size:11px;color:var(--gray)}
+.error-banner{background:#fef2f2;color:#991b1b;padding:12px 20px;text-align:center;font-size:13px;display:none}
+.summary-bar{display:flex;gap:12px;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:82px;z-index:99;font-size:11px}
+.summary-bar span{padding:3px 8px;border-radius:4px;background:#f3f4f6}
+.summary-bar .highlight{background:#dbeafe;color:#1e40af;font-weight:600}
+@media(max-width:768px){main{padding:8px}table{font-size:11px}thead th,tbody td{padding:5px 6px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>📊 宏观高频指标观测面板</h1>
+<div class="sub">基于 iFinD EDB 日频/周频数据 · 覆盖10大类 · 每周一自动更新</div>
+<div class="stats" id="headerStats">⏳ 加载中...</div>
+</header>
+
+<div class="summary-bar" id="summaryBar" style="display:none"></div>
+<div class="loading" id="loading"><div class="spinner"></div><br>正在加载数据...</div>
+<div class="error-banner" id="errorBanner" style="display:none"></div>
+<main id="mainContent"></main>
+
+<div class="modal" id="chartModal">
+<div class="modal-content">
+<div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeChart()">×</button></div>
+<div class="modal-body">
+<div class="time-filters" id="timeFilters">
+<button data-range="1m" onclick="setRange('1m')">1个月</button>
+<button data-range="3m" onclick="setRange('3m')">3个月</button>
+<button data-range="6m" onclick="setRange('6m')">6个月</button>
+<button data-range="1y" onclick="setRange('1y')">1年</button>
+<button data-range="3y" onclick="setRange('3y')">3年</button>
+<button data-range="all" onclick="setRange('all')">全部</button>
+</div>
+<div class="chart-container" id="chartContainer"></div>
+</div>
+</div>
+</div>
+
+<footer>宏观高频指标观测面板 · 数据源: iFinD EDB · 每周一自动更新</footer>
+
+<script>
+let MACRO_DATA = null;
+let chartInstance = null;
+let currentIndicator = null;
+
+const CAT_ORDER = ["PMI","CPI","PPI","进口","出口","社融","社零","固定资产投资","工业增加值","地产数据"];
+
+async function loadData() {
+    try {
+        const resp = await fetch('macro-data.json?t=' + Date.now());
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        MACRO_DATA = await resp.json();
+        document.getElementById('loading').style.display = 'none';
+        renderAll();
+    } catch(e) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('errorBanner').style.display = 'block';
+        document.getElementById('errorBanner').textContent = '❌ 数据加载失败: ' + e.message + ' (请刷新重试)';
+    }
+}
+
+function renderAll() {
+    let totalDaily = 0, totalWeekly = 0, totalInds = 0;
+    let summaryChips = [];
+    let html = '';
+    
+    CAT_ORDER.forEach(catId => {
+        const cat = MACRO_DATA[catId];
+        if (!cat) return;
+        const inds = cat.indicators;
+        if (!inds || !inds.length) return;
+        
+        const nDaily = inds.filter(i => i.freq==='日频').length;
+        const nWeekly = inds.filter(i => i.freq==='周频').length;
+        totalDaily += nDaily; totalWeekly += nWeekly; totalInds += inds.length;
+        
+        let bullish = 0, bearish = 0;
+        inds.forEach(i => {
+            if (i.bond_signal.includes('利多')) bullish++;
+            if (i.bond_signal.includes('利空')) bearish++;
+        });
+        
+        summaryChips.push(`<span>${cat.display} <span class="highlight">${inds.length}</span> (🟢${bullish} 🔴${bearish})</span>`);
+        
+        html += `<div class="cat-section">
+<div class="cat-header open" onclick="toggleCat(this)">
+<h2>${cat.display} <span class="badge">${inds.length}</span></h2>
+<span class="meta">日频${nDaily} 周频${nWeekly} · 利多${bullish} 利空${bearish}</span>
+<span class="arrow">▼</span>
+</div>
+<div class="cat-body"><div class="table-wrap"><table>
+<thead><tr><th>高频指标</th><th>频率</th><th>最新日期</th><th>上期值</th><th>最新值</th><th>变动</th><th>变动%</th><th>债市方向</th></tr></thead><tbody>`;
+        
+        inds.forEach((ind, idx) => {
+            const indicatorId = catId + '_' + idx;
+            const change = ind.change;
+            let changeStr = '—', changeCls = 'val-neutral';
+            if (change !== null && change !== undefined) {
+                changeStr = (change > 0 ? '+' : '') + change;
+                changeCls = change > 0 ? 'val-up' : 'val-down';
+            }
+            const pctStr = ind.change_pct !== null && ind.change_pct !== undefined ? ind.change_pct + '%' : '—';
+            const prevStr = ind.prev_val !== null && ind.prev_val !== undefined ? ind.prev_val : '—';
+            const latestStr = ind.latest_val !== null && ind.latest_val !== undefined ? ind.latest_val : '—';
+            
+            let tagCls = 'tag-neutral';
+            const sig = ind.bond_signal || '';
+            if (sig.includes('利多')) tagCls = 'tag-bullish';
+            else if (sig.includes('利空')) tagCls = 'tag-bearish';
+            else if (sig.includes('中性')) tagCls = 'tag-neutral';
+            else tagCls = 'tag-mixed';
+            
+            const freqTag = ind.freq === '日频' ? '<span class="freq-badge freq-daily">日</span>' : '<span class="freq-badge freq-weekly">周</span>';
+            
+            html += `<tr>
+<td onclick="openChart('${indicatorId}')">${ind.name}${freqTag}</td>
+<td>${ind.freq}</td>
+<td>${ind.latest_date||''}</td>
+<td>${prevStr}</td>
+<td>${latestStr}</td>
+<td class="${changeCls}">${changeStr}</td>
+<td>${pctStr}</td>
+<td><span class="tag ${tagCls}">${sig||'—'}</span></td></tr>`;
+        });
+        
+        html += '</tbody></table></div></div></div>';
+    });
+    
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('headerStats').innerHTML = `📈 ${totalInds}个指标 (日频${totalDaily} + 周频${totalWeekly}) · 📅 数据覆盖至 2026-07-13`;
+    document.getElementById('summaryBar').innerHTML = summaryChips.join('');
+    document.getElementById('summaryBar').style.display = 'flex';
+    
+    // Init heights
+    document.querySelectorAll('.cat-body').forEach(b => {
+        b.style.maxHeight = b.scrollHeight + 'px';
+    });
+}
+
+function toggleCat(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    if (body.classList.contains('collapsed')) {
+        body.classList.remove('collapsed');
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.style.opacity = '1';
+    } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => {
+            body.classList.add('collapsed');
+            body.style.maxHeight = '0px';
+            body.style.opacity = '0';
+        });
+    }
+}
+
+function findIndicator(id) { const [c,i] = id.split('_'); return MACRO_DATA[c]?.indicators[parseInt(i)]; }
+
+function openChart(id) {
+    const ind = findIndicator(id); if (!ind) return;
+    currentIndicator = {id, ind};
+    document.getElementById('modalTitle').textContent = ind.name + ' · 近3年走势';
+    document.getElementById('chartModal').classList.add('active');
+    document.querySelectorAll('#timeFilters button').forEach(b => b.classList.remove('active'));
+    document.querySelector('#timeFilters button[data-range="3y"]').classList.add('active');
+    setTimeout(() => renderChart('3y'), 150);
+}
+
+function closeChart() {
+    document.getElementById('chartModal').classList.remove('active');
+    if (chartInstance) { chartInstance.dispose(); chartInstance = null; }
+}
+
+function setRange(r) {
+    document.querySelectorAll('#timeFilters button').forEach(b => b.classList.remove('active'));
+    document.querySelector('#timeFilters button[data-range="'+r+'"]').classList.add('active');
+    renderChart(r);
+}
+
+function renderChart(range) {
+    if (!currentIndicator) return;
+    const {ind} = currentIndicator;
+    const c = document.getElementById('chartContainer');
+    if (chartInstance) chartInstance.dispose();
+    chartInstance = echarts.init(c);
+    
+    let dates = [...ind.chart_dates];
+    let values = [...ind.chart_values];
+    const lastDate = new Date(dates[dates.length-1]);
+    const rangeMap = {'1m':30,'3m':90,'6m':180,'1y':365,'3y':1095};
+    
+    if (range !== 'all' && rangeMap[range]) {
+        const cutoff = new Date(lastDate); cutoff.setDate(cutoff.getDate()-rangeMap[range]);
+        const cs = cutoff.toISOString().split('T')[0];
+        const f = []; for(let i=0;i<dates.length;i++) if(dates[i]>=cs) f.push({d:dates[i],v:values[i]});
+        dates = f.map(x=>x.d); values = f.map(x=>x.v);
+    }
+    
+    chartInstance.setOption({
+        tooltip:{trigger:'axis',formatter:p=>p[0].axisValue+'<br/><b>'+ind.name+': '+p[0].value+'</b>'},
+        grid:{left:55,right:25,top:15,bottom:35},
+        xAxis:{type:'category',data:dates,axisLabel:{formatter:v=>v.slice(5),fontSize:10,interval:Math.max(1,Math.floor(dates.length/12))}},
+        yAxis:{type:'value',axisLabel:{fontSize:11},splitLine:{lineStyle:{color:'#f0f0f0'}}},
+        dataZoom:[{type:'inside',start:0,end:100},{type:'slider',start:0,end:100,height:22,bottom:2}],
+        series:[{name:ind.name,type:'line',data:values,smooth:true,showSymbol:false,lineStyle:{color:'#2563eb',width:2},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(37,99,235,0.12)'},{offset:1,color:'rgba(37,99,235,0.01)'}])}}]
+    });
+}
+
+document.getElementById('chartModal').addEventListener('click',function(e){if(e.target===this)closeChart()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeChart()});
+window.addEventListener('resize',()=>chartInstance&&chartInstance.resize());
+
+loadData();
+</script>
+</body>
+</html>
