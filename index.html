@@ -170,18 +170,18 @@ function makeChart(id,opt){const el=document.getElementById(id);if(el)echarts.in
 makeChart('chart-yield',{
   tooltip:{trigger:'axis',formatter:p=>`${p[0].axisValue}年<br/>${p.map(s=>`${s.marker} ${s.seriesName}: ${s.value[1].toFixed(4)}%`).join('<br/>')}`},
   legend:{bottom:0,textStyle:{fontSize:12}},
-  grid:{left:60,right:35,top:20,bottom:50},
-  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:30,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
-  yAxis:{name:'收益率（%）',axisLabel:{fontSize:11,margin:8},min:1},
+  grid:{left:70,right:35,top:20,bottom:55},
+  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:35,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
+  yAxis:{name:'收益率（%）',nameLocation:'middle',nameGap:50,axisLabel:{fontSize:11,margin:8},min:1},
   series:seriesYield
 });
 
 makeChart('chart-return',{
   tooltip:{trigger:'axis',formatter:p=>`${p[0].axisValue}年<br/>${p.map(s=>`${s.marker} ${s.seriesName}: ${Array.isArray(s.value)?s.value[1].toFixed(3):''}%`).join('<br/>')}`},
   legend:{bottom:0,textStyle:{fontSize:12}},
-  grid:{left:60,right:35,top:20,bottom:50},
-  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:30,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
-  yAxis:{name:'年化持有收益（%）',axisLabel:{fontSize:11,margin:8},min:1},
+  grid:{left:70,right:35,top:20,bottom:55},
+  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:35,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
+  yAxis:{name:'年化持有收益（%）',nameLocation:'middle',nameGap:55,axisLabel:{fontSize:11,margin:8},min:1},
   series:seriesReturn
 });
 
@@ -192,9 +192,9 @@ makeChart('chart-decomp',{
       '券商债AAA 票息收益':false,'券商债AAA 骑乘贡献':false,
       '中短期票据AAA 票息收益':false,'中短期票据AAA 骑乘贡献':false
     }},
-  grid:{left:60,right:35,top:20,bottom:55},
-  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:25,min:0,max:10,axisLabel:{fontSize:11}},
-  yAxis:{name:'年化收益率（%）',axisLabel:{fontSize:11}},
+  grid:{left:70,right:35,top:20,bottom:60},
+  xAxis:{name:'期限（年）',nameLocation:'center',nameGap:35,min:0,max:10,axisLabel:{fontSize:11,margin:8}},
+  yAxis:{name:'年化收益率（%）',nameLocation:'middle',nameGap:50,axisLabel:{fontSize:11,margin:8}},
   series:seriesDecomp
 });
 
